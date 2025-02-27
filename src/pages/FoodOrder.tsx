@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, Filter, MapPin, ShoppingBag } from "lucide-react";
@@ -54,6 +55,11 @@ const FoodOrder = () => {
     });
   };
 
+  const handleCheckout = () => {
+    navigate('/checkout');
+  };
+
+  // Restaurant data
   const restaurants = [
     {
       id: "1",
@@ -252,12 +258,7 @@ const FoodOrder = () => {
               <div className="max-w-md mx-auto">
                 <Button 
                   className="w-full py-6 shadow-lg rounded-xl justify-between group"
-                  onClick={() => {
-                    toast({
-                      title: "Proceeding to checkout",
-                      description: `${cart.items.length} items for $${cart.total.toFixed(2)}`,
-                    });
-                  }}
+                  onClick={handleCheckout}
                 >
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5" />
