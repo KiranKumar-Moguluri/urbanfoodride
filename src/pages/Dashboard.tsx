@@ -383,4 +383,79 @@ const Dashboard = () => {
                 <h2 className="text-xl font-semibold text-night-800 mb-4">Your Stats</h2>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-lg border border-gray-100 bg-gray
+                  <div className="p-4 rounded-lg border border-gray-100 bg-gray-50 text-center">
+                    <div className="text-2xl font-bold text-urban-600 mb-1">12</div>
+                    <div className="text-sm text-night-600">Total Orders</div>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg border border-gray-100 bg-gray-50 text-center">
+                    <div className="text-2xl font-bold text-urban-600 mb-1">8</div>
+                    <div className="text-sm text-night-600">Rides Taken</div>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg border border-gray-100 bg-gray-50 text-center">
+                    <div className="text-2xl font-bold text-urban-600 mb-1">$235</div>
+                    <div className="text-sm text-night-600">Total Spent</div>
+                  </div>
+                  
+                  <div className="p-4 rounded-lg border border-gray-100 bg-gray-50 text-center">
+                    <div className="text-2xl font-bold text-urban-600 mb-1">$42</div>
+                    <div className="text-sm text-night-600">Savings</div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="nearby" className="space-y-6">
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-night-800">
+                    {serviceMode === "food" ? "Nearby Restaurants" : "Available Rides"}
+                  </h2>
+                  <Button variant="link" className="gap-1">
+                    View All
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {serviceMode === "food" ? (
+                    <>
+                      {nearbyRestaurants.map((restaurant) => (
+                        <FoodCard 
+                          key={restaurant.id}
+                          restaurant={restaurant}
+                          variant="small"
+                          onClick={() => navigate(`/food-order?restaurant=${restaurant.id}`)}
+                        />
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {availableRides.map((ride, index) => (
+                        <RideCard 
+                          key={index}
+                          {...ride}
+                          variant="small"
+                          onRequestRide={() => navigate(`/ride-share?ride=${index}`)}
+                        />
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <LocationSearch
+            open={locationModalOpen}
+            onOpenChange={setLocationModalOpen}
+            onLocationSelect={handleLocationSelect}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
