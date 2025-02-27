@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, MapPin, HelpCircle, Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -25,6 +25,7 @@ export function Navbar({
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Handle scroll effect
   useEffect(() => {
@@ -78,24 +79,26 @@ export function Navbar({
             >
               Dashboard
             </Link>
-            <Link 
-              to="/ride-share" 
+            <Button
+              variant="link" 
               className={cn(
-                "text-night-700 hover:text-urban-600 transition-colors font-medium",
+                "text-night-700 hover:text-urban-600 transition-colors font-medium p-0 h-auto",
                 isActive("/ride-share") && "text-urban-600"
               )}
+              onClick={() => navigate("/ride-share")}
             >
               Find Ride
-            </Link>
-            <Link 
-              to="/food-order" 
+            </Button>
+            <Button 
+              variant="link"
               className={cn(
-                "text-night-700 hover:text-urban-600 transition-colors font-medium",
+                "text-night-700 hover:text-urban-600 transition-colors font-medium p-0 h-auto",
                 isActive("/food-order") && "text-urban-600"
               )}
+              onClick={() => navigate("/food-order")}
             >
               Order Food
-            </Link>
+            </Button>
           </nav>
           
           <div className="flex items-center space-x-2">
@@ -186,24 +189,30 @@ export function Navbar({
                   >
                     Dashboard
                   </Link>
-                  <Link 
-                    to="/ride-share" 
+                  <Button
+                    variant="link"
                     className={cn(
-                      "text-night-700 hover:text-urban-600 transition-colors font-medium",
+                      "text-night-700 hover:text-urban-600 transition-colors font-medium p-0 h-auto justify-start",
                       isActive("/ride-share") && "text-urban-600"
                     )}
+                    onClick={() => {
+                      navigate("/ride-share");
+                    }}
                   >
                     Find Ride
-                  </Link>
-                  <Link 
-                    to="/food-order" 
+                  </Button>
+                  <Button
+                    variant="link"
                     className={cn(
-                      "text-night-700 hover:text-urban-600 transition-colors font-medium",
+                      "text-night-700 hover:text-urban-600 transition-colors font-medium p-0 h-auto justify-start",
                       isActive("/food-order") && "text-urban-600"
                     )}
+                    onClick={() => {
+                      navigate("/food-order");
+                    }}
                   >
                     Order Food
-                  </Link>
+                  </Button>
                   <Link 
                     to="/help" 
                     className="text-night-700 hover:text-urban-600 transition-colors font-medium"

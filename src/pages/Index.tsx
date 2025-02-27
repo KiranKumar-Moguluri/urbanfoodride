@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Car, Utensils, MapPin, PlusCircle, Clock, DollarSign } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<{ name: string; email: string; role: string } | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLoginSuccess = (user: { name: string; email: string; role: string }) => {
     setIsLoggedIn(true);
@@ -34,6 +35,14 @@ const Index = () => {
     toast({
       title: "Location updated",
       description: location,
+    });
+  };
+  
+  const handleServiceModeChange = (mode: "food" | "ride") => {
+    setServiceMode(mode);
+    toast({
+      title: `Switched to ${mode} mode`,
+      description: `You're now viewing ${mode === "food" ? "restaurants" : "rides"}.`,
     });
   };
 
@@ -131,12 +140,16 @@ const Index = () => {
               <Button 
                 size="lg" 
                 className="gap-2"
-                asChild
+                onClick={() => {
+                  if (isLoggedIn) {
+                    navigate("/dashboard");
+                  } else {
+                    setAuthModalOpen(true);
+                  }
+                }}
               >
-                <Link to={isLoggedIn ? "/dashboard" : "#"} onClick={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}>
-                  Get Started
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                Get Started
+                <ArrowRight className="h-4 w-4" />
               </Button>
               
               <Button 
@@ -154,7 +167,7 @@ const Index = () => {
           <div className="w-full max-w-md mx-auto mt-10">
             <ServiceToggle 
               value={serviceMode} 
-              onChange={setServiceMode}
+              onChange={handleServiceModeChange}
               className="mx-auto"
             />
           </div>
@@ -213,12 +226,20 @@ const Index = () => {
               {serviceMode === "food" ? "Featured Restaurants" : "Trending Rides"}
             </h2>
             
-            <Link to={isLoggedIn ? (serviceMode === "food" ? "/food-order" : "/ride-share") : "#"} onClick={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}>
-              <Button variant="link" className="gap-1">
-                See All
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button 
+              variant="link" 
+              className="gap-1"
+              onClick={() => {
+                if (isLoggedIn) {
+                  navigate(serviceMode === "food" ? "/food-order" : "/ride-share");
+                } else {
+                  setAuthModalOpen(true);
+                }
+              }}
+            >
+              See All
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -231,6 +252,7 @@ const Index = () => {
                     if (!isLoggedIn) {
                       setAuthModalOpen(true);
                     } else {
+                      navigate(`/food-order?restaurant=${restaurant.id}`);
                       toast({
                         title: "Restaurant selected",
                         description: `You selected ${restaurant.name}`,
@@ -247,6 +269,7 @@ const Index = () => {
                     if (!isLoggedIn) {
                       setAuthModalOpen(true);
                     } else {
+                      navigate(`/ride-share?ride=${index}`);
                       toast({
                         title: "Ride requested",
                         description: `Your ride from ${ride.pickup} to ${ride.destination} has been requested.`,
@@ -327,12 +350,16 @@ const Index = () => {
               size="lg" 
               variant="secondary"
               className="gap-2 bg-white text-urban-600 hover:bg-white/90 hover:text-urban-700"
-              asChild
+              onClick={() => {
+                if (isLoggedIn) {
+                  navigate("/dashboard");
+                } else {
+                  setAuthModalOpen(true);
+                }
+              }}
             >
-              <Link to={isLoggedIn ? "/dashboard" : "#"} onClick={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}>
-                Get Started
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              Get Started
+              <ArrowRight className="h-4 w-4" />
             </Button>
             
             <Button 
@@ -395,7 +422,7 @@ const Index = () => {
           
           <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row justify-between items-center">
             <div className="text-white/70 text-sm">
-              <p>© 2023 UrbanDashX. All rights reserved.</p>
+              <p>© 2025 UrbanDashX. All rights reserved.</p>
               <p className="mt-2">
                 <span className="font-medium text-white">Kiran Kumar Moguluri</span> - Founder
               </p>

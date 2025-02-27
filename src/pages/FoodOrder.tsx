@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, Filter, MapPin, ShoppingBag } from "lucide-react";
@@ -20,13 +19,11 @@ const FoodOrder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Parse query params
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const restaurantId = params.get("restaurant");
     if (restaurantId) {
       setSelectedRestaurant(restaurantId);
-      // In a real app, you would fetch the restaurant details here
     }
   }, [location]);
 
@@ -39,12 +36,11 @@ const FoodOrder = () => {
   };
 
   const handleOrderFood = (restaurant: any) => {
-    // Add to cart functionality
     const newCartItem = {
       id: Date.now(),
       restaurant: restaurant,
       quantity: 1,
-      price: 15.99, // Example price
+      price: 15.99,
     };
     
     setCart(prev => ({
@@ -58,7 +54,6 @@ const FoodOrder = () => {
     });
   };
 
-  // Restaurant data (in a real app, this would be fetched from an API)
   const restaurants = [
     {
       id: "1",
@@ -143,7 +138,6 @@ const FoodOrder = () => {
       
       <div className="pt-24 px-4 md:px-8 pb-20">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <div className="flex items-center gap-2">
               <Button 
@@ -173,7 +167,6 @@ const FoodOrder = () => {
             </div>
           </div>
           
-          {/* Search Bar */}
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-night-400" />
             <Input 
@@ -191,7 +184,6 @@ const FoodOrder = () => {
             </Button>
           </div>
           
-          {/* Main Content */}
           <Tabs defaultValue="all" className="mb-8">
             <TabsList className="mb-6">
               <TabsTrigger value="all">All</TabsTrigger>
@@ -255,7 +247,6 @@ const FoodOrder = () => {
             </TabsContent>
           </Tabs>
           
-          {/* Floating Cart Button */}
           {cart.items.length > 0 && (
             <div className="fixed bottom-5 left-0 right-0 px-4 z-10">
               <div className="max-w-md mx-auto">
@@ -282,7 +273,6 @@ const FoodOrder = () => {
         </div>
       </div>
       
-      {/* Footer with Founder Info */}
       <footer className="py-6 px-4 bg-white border-t text-center">
         <p className="text-night-700 text-sm font-medium">
           Kiran Kumar Moguluri
@@ -295,9 +285,11 @@ const FoodOrder = () => {
             mogulurikirankumar@gmail.com
           </a>
         </p>
+        <p className="text-night-500 text-xs mt-1">
+          © 2025 UrbanDashX. All rights reserved.
+        </p>
       </footer>
       
-      {/* Modals */}
       <LocationSearch 
         open={locationModalOpen}
         onOpenChange={setLocationModalOpen}

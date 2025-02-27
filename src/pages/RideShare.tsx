@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, MapPin, Clock, Plus, Users, ArrowRight } from "lucide-react";
@@ -20,7 +19,6 @@ const RideShare = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Parse query params
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const sharing = params.get("sharing");
@@ -31,7 +29,6 @@ const RideShare = () => {
     }
     
     if (rideId) {
-      // In a real app, you would fetch the ride details here
       toast({
         title: "Ride selected",
         description: `You selected ride #${rideId}`,
@@ -54,7 +51,6 @@ const RideShare = () => {
     });
   };
 
-  // Available rides data
   const availableRides = [
     {
       driver: {
@@ -155,7 +151,6 @@ const RideShare = () => {
       
       <div className="pt-24 px-4 md:px-8 pb-20">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <div className="flex items-center gap-2">
               <Button 
@@ -185,7 +180,6 @@ const RideShare = () => {
             </div>
           </div>
           
-          {/* Ride Search Form */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <h2 className="text-lg font-semibold text-night-800 mb-4">Find a Ride</h2>
             
@@ -273,7 +267,6 @@ const RideShare = () => {
             </div>
           </div>
           
-          {/* Available Rides */}
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-night-800">Available Rides</h2>
@@ -337,7 +330,6 @@ const RideShare = () => {
         </div>
       </div>
       
-      {/* Footer with Founder Info */}
       <footer className="py-6 px-4 bg-white border-t text-center">
         <p className="text-night-700 text-sm font-medium">
           Kiran Kumar Moguluri
@@ -350,9 +342,11 @@ const RideShare = () => {
             mogulurikirankumar@gmail.com
           </a>
         </p>
+        <p className="text-night-500 text-xs mt-1">
+          © 2025 UrbanDashX. All rights reserved.
+        </p>
       </footer>
       
-      {/* Modals */}
       <LocationSearch 
         open={locationModalOpen}
         onOpenChange={setLocationModalOpen}
