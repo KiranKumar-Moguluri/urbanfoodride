@@ -394,9 +394,17 @@ const Index = () => {
           </div>
           
           <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-white/70 text-sm">
-              © 2023 UrbanDashX. All rights reserved.
-            </p>
+            <div className="text-white/70 text-sm">
+              <p>© 2023 UrbanDashX. All rights reserved.</p>
+              <p className="mt-2">
+                <span className="font-medium text-white">Kiran Kumar Moguluri</span> - Founder
+              </p>
+              <p className="mt-1">
+                <a href="mailto:mogulurikirankumar@gmail.com" className="hover:text-urban-300">
+                  mogulurikirankumar@gmail.com
+                </a>
+              </p>
+            </div>
             
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-white/70 hover:text-white">
