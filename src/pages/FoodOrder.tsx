@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Search, Filter, MapPin, ShoppingBag } from "lucide-react";
+import { ChevronLeft, Search, Filter, MapPin, ShoppingBag, Car, Users, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { FoodCard } from "@/components/FoodCard";
@@ -9,6 +9,7 @@ import { LocationSearch } from "@/components/LocationSearch";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 const FoodOrder = () => {
   const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -16,6 +17,10 @@ const FoodOrder = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
   const [cart, setCart] = useState<{items: any[], total: number}>({ items: [], total: 0 });
+  const [offerRideEnabled, setOfferRideEnabled] = useState(false);
+  const [showOfferRideSheet, setShowOfferRideSheet] = useState(false);
+  const [rideCapacity, setRideCapacity] = useState(1);
+  const [rideTime, setRideTime] = useState("18:00");
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,8 +60,26 @@ const FoodOrder = () => {
     });
   };
 
+  const handleOfferRide = () => {
+    // Close the sheet
+    setShowOfferRideSheet(false);
+    
+    // Enable ride offering
+    setOfferRideEnabled(true);
+    
+    toast({
+      title: "Ride Offering Enabled",
+      description: `You'll be offering a ride for ${rideCapacity} passenger(s) at ${rideTime}`,
+    });
+  };
+
   const handleCheckout = () => {
-    navigate('/checkout');
+    // If offering ride, add that information to the URL
+    if (offerRideEnabled) {
+      navigate(`/checkout?offerRide=true&capacity=${rideCapacity}&time=${rideTime}`);
+    } else {
+      navigate('/checkout');
+    }
   };
 
   // Restaurant data
@@ -190,6 +213,115 @@ const FoodOrder = () => {
             </Button>
           </div>
           
+          {/* Offer a Ride Banner */}
+          {!offerRideEnabled && (
+            <div className="bg-urban-50 rounded-lg p-4 mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-urban-100 rounded-full flex items-center justify-center">
+                  <Car className="h-5 w-5 text-urban-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-night-800">Want to offer a ride?</h3>
+                  <p className="text-sm text-night-600">Save money by offering a ride to others while picking up your food</p>
+                </div>
+              </div>
+              
+              <Sheet open={showOfferRideSheet} onOpenChange={setShowOfferRideSheet}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="flex-shrink-0">Offer Ride</Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <div className="space-y-6 pt-6">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Car className="h-5 w-5 text-urban-600" />
+                      Offer a Ride
+                    </h2>
+                    
+                    <p className="text-night-600">
+                      You can offer a ride to others when you pick up your food order. Set your preferences below:
+                    </p>
+                    
+                    <div className="space-y-4 mt-6">
+                      <div className="space-y-2">
+                        <label htmlFor="capacity" className="text-sm font-medium text-night-700">Passenger Capacity</label>
+                        <div className="relative">
+                          <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-night-400" />
+                          <Input 
+                            id="capacity"
+                            type="number"
+                            min="1"
+                            max="4"
+                            className="pl-9"
+                            value={rideCapacity}
+                            onChange={(e) => setRideCapacity(parseInt(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="time" className="text-sm font-medium text-night-700">Pickup Time</label>
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-night-400" />
+                          <Input 
+                            id="time"
+                            type="time"
+                            className="pl-9"
+                            value={rideTime}
+                            onChange={(e) => setRideTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3 mt-8">
+                      <Button className="flex-1" onClick={handleOfferRide}>
+                        Confirm
+                      </Button>
+                      <SheetClose asChild>
+                        <Button variant="outline" className="flex-1">
+                          Cancel
+                        </Button>
+                      </SheetClose>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          )}
+          
+          {/* Ride Offering Banner (when enabled) */}
+          {offerRideEnabled && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Car className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-night-800">Ride Offering Active</h3>
+                    <p className="text-sm text-night-600">
+                      You're offering a ride for {rideCapacity} passenger(s) at {rideTime}
+                    </p>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                  onClick={() => {
+                    setOfferRideEnabled(false);
+                    toast({
+                      title: "Ride Offering Disabled",
+                      description: "You're no longer offering a ride with your order",
+                    });
+                  }}
+                >
+                  Cancel Ride
+                </Button>
+              </div>
+            </div>
+          )}
+          
           <Tabs defaultValue="all" className="mb-8">
             <TabsList className="mb-6">
               <TabsTrigger value="all">All</TabsTrigger>
@@ -263,6 +395,11 @@ const FoodOrder = () => {
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5" />
                     <span>View Cart ({cart.items.length} items)</span>
+                    {offerRideEnabled && (
+                      <span className="text-xs bg-green-200 text-green-800 py-0.5 px-2 rounded-full">
+                        + Ride
+                      </span>
+                    )}
                   </div>
                   <div className="font-semibold">
                     ${cart.total.toFixed(2)}
