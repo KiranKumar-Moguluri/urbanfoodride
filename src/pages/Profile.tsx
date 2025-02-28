@@ -8,12 +8,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UserAvatar } from "@/components/UserAvatar";
 import { LocationSearch } from "@/components/LocationSearch";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Profile = () => {
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>("350 5th Ave, New York, NY 10118");
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate("/");
+      toast({
+        title: "Authentication required",
+        description: "Please log in to view your profile",
+        variant: "destructive"
+      });
+    }
+  }, [user, navigate, toast]);
 
   const handleLocationSelect = (location: string) => {
     setCurrentLocation(location);
@@ -23,8 +37,24 @@ const Profile = () => {
     });
   };
 
-  // Mock user data - in a real app, this would come from context or an API
-  const userData = {
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+  };
+
+  // Use user data from auth context if available, otherwise use mock data
+  const userData = user ? {
+    name: user.name,
+    email: user.email,
+    phone: "+1 (555) 123-4567", // This would come from MongoDB in production
+    address: currentLocation,
+    memberSince: "January 2024",
+    avatar: "https://randomuser.me/api/portraits/men/32.jpg", // This would come from MongoDB in production
+  } : {
     name: "John Doe",
     email: "john@example.com",
     phone: "+1 (555) 123-4567",
@@ -33,7 +63,7 @@ const Profile = () => {
     avatar: "https://randomuser.me/api/portraits/men/32.jpg",
   };
 
-  // Mock order history
+  // Mock order history - in production, this would come from MongoDB
   const orderHistory = [
     {
       id: "ORD-10124",
@@ -61,7 +91,7 @@ const Profile = () => {
     },
   ];
 
-  // Mock ride history
+  // Mock ride history - in production, this would come from MongoDB
   const rideHistory = [
     {
       id: "RIDE-5089",
@@ -91,6 +121,11 @@ const Profile = () => {
       description: "Complete your ride details to start offering rides.",
     });
   };
+
+  // If not logged in and still loading, show nothing
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -173,7 +208,11 @@ const Profile = () => {
                       Account Settings
                     </Button>
                     
-                    <Button variant="outline" className="w-full justify-start gap-2 text-red-600 hover:text-red-700">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start gap-2 text-red-600 hover:text-red-700"
+                      onClick={handleLogout}
+                    >
                       <LogOut className="h-4 w-4" />
                       Sign Out
                     </Button>

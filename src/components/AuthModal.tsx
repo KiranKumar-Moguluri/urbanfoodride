@@ -6,21 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onLoginSuccess: (user: { name: string; email: string; role: string }) => void;
+  onLoginSuccess?: (user: { name: string; email: string; role: string }) => void;
 }
 
 export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login, register } = useAuth();
   
   // Login form state
   const [loginForm, setLoginForm] = useState({
-    username: "",
+    email: "",
     password: "",
   });
   
@@ -32,44 +34,43 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
     confirmPassword: "",
   });
   
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Demo hardcoded login for admin and user
-      if (
-        (loginForm.username === "admin" && loginForm.password === "admin") ||
-        (loginForm.username === "user" && loginForm.password === "user")
-      ) {
-        const isAdmin = loginForm.username === "admin";
-        
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${isAdmin ? "Admin" : "User"}!`,
-        });
+    try {
+      // This would connect to a MongoDB backend in production
+      await login(loginForm.email, loginForm.password);
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+      
+      if (onLoginSuccess) {
+        // Determine if admin based on email
+        const isAdmin = loginForm.email === "admin@urbandashx.com";
         
         onLoginSuccess({
           name: isAdmin ? "Admin User" : "Regular User",
-          email: isAdmin ? "admin@urbandashx.com" : "user@example.com",
+          email: loginForm.email,
           role: isAdmin ? "admin" : "user",
-        });
-        
-        onOpenChange(false);
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Invalid username or password. Try admin/admin or user/user",
-          variant: "destructive",
         });
       }
       
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "Invalid email or password. Try admin@urbandashx.com/admin or user@example.com/user",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
   
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
@@ -84,8 +85,10 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
       return;
     }
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // This would connect to a MongoDB backend in production
+      await register(registerForm.name, registerForm.email, registerForm.password);
+      
       toast({
         title: "Registration successful",
         description: "Your account has been created. You can now log in.",
@@ -93,12 +96,18 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
       
       setActiveTab("login");
       setLoginForm({
-        username: registerForm.email,
+        email: registerForm.email,
         password: "",
       });
-      
+    } catch (error) {
+      toast({
+        title: "Registration failed",
+        description: "An error occurred during registration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
   
   const updateLoginForm = (field: keyof typeof loginForm, value: string) => {
@@ -132,12 +141,13 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
           <TabsContent value="login" className="mt-4">
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username or Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input 
-                  id="username"
-                  placeholder="Enter your username or email"
-                  value={loginForm.username}
-                  onChange={(e) => updateLoginForm("username", e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={loginForm.email}
+                  onChange={(e) => updateLoginForm("email", e.target.value)}
                   required
                 />
               </div>
@@ -171,7 +181,7 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
             <div className="mt-6 text-center text-sm text-muted-foreground">
               <p>Demo Accounts:</p>
               <p className="mt-1 font-medium text-night-800">
-                admin / admin &nbsp;|&nbsp; user / user
+                admin@urbandashx.com / admin &nbsp;|&nbsp; user@example.com / user
               </p>
             </div>
           </TabsContent>
