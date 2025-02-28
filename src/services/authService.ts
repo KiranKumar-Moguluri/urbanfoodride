@@ -1,57 +1,77 @@
 
-// This file simulates a service that would connect to a MongoDB backend
-// In a real application, this would make actual API calls to your backend
+import { User } from "../contexts/AuthContext";
 
-import { User } from "@/contexts/AuthContext";
+const API_URL = "http://localhost:5000/api/auth";
 
-// Mock database - in production, this would be MongoDB
-const mockUsers = [
-  {
-    id: "admin-123",
-    name: "Admin User",
-    email: "admin@urbandashx.com",
-    password: "admin", // In production, NEVER store plain text passwords
-    role: "admin"
-  },
-  {
-    id: "user-456",
-    name: "Regular User",
-    email: "user@example.com",
-    password: "user", // In production, NEVER store plain text passwords
-    role: "user"
+export const loginService = async (email: string, password: string): Promise<{user: User, token: string}> => {
+  try {
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Login failed');
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
   }
-];
-
-// Login service
-export const loginService = async (email: string, password: string): Promise<User> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  // Find user
-  const user = mockUsers.find(u => u.email === email && u.password === password);
-  
-  if (!user) {
-    throw new Error("Invalid credentials");
-  }
-  
-  // Return user without password
-  const { password: _, ...userWithoutPassword } = user;
-  return userWithoutPassword as User;
 };
 
-// Register service
-export const registerService = async (name: string, email: string, password: string): Promise<void> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Check if user exists
-  if (mockUsers.some(u => u.email === email)) {
-    throw new Error("User already exists");
+export const registerService = async (name: string, email: string, password: string): Promise<{user: User, token: string}> => {
+  try {
+    const response = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name, email, password })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Registration failed');
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
   }
-  
-  // In production, this would create a user in MongoDB
-  console.log("User registered:", { name, email });
-  
-  // Just return success for now
-  return Promise.resolve();
+};
+
+export const getCurrentUser = async (token: string): Promise<User> => {
+  try {
+    const response = await fetch(`${API_URL}/user`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to get user data');
+    }
+    
+    const data = await response.json();
+    return {
+      id: data._id,
+      name: data.name,
+      email: data.email,
+      role: data.role
+    };
+  } catch (error) {
+    console.error('Get user error:', error);
+    throw error;
+  }
 };

@@ -39,7 +39,7 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
     setIsLoading(true);
     
     try {
-      // This would connect to a MongoDB backend in production
+      // Connect to MongoDB backend via AuthContext
       await login(loginForm.email, loginForm.password);
       
       toast({
@@ -48,13 +48,10 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
       });
       
       if (onLoginSuccess) {
-        // Determine if admin based on email
-        const isAdmin = loginForm.email === "admin@urbandashx.com";
-        
         onLoginSuccess({
-          name: isAdmin ? "Admin User" : "Regular User",
+          name: loginForm.email, // This will be updated with actual name after login
           email: loginForm.email,
-          role: isAdmin ? "admin" : "user",
+          role: "user", // This will be updated with actual role after login
         });
       }
       
@@ -62,7 +59,7 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
     } catch (error) {
       toast({
         title: "Login failed",
-        description: "Invalid email or password. Try admin@urbandashx.com/admin or user@example.com/user",
+        description: "Invalid email or password. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -86,19 +83,24 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
     }
     
     try {
-      // This would connect to a MongoDB backend in production
+      // Connect to MongoDB backend via AuthContext
       await register(registerForm.name, registerForm.email, registerForm.password);
       
       toast({
         title: "Registration successful",
-        description: "Your account has been created. You can now log in.",
+        description: "Your account has been created.",
       });
       
-      setActiveTab("login");
-      setLoginForm({
-        email: registerForm.email,
-        password: "",
-      });
+      // Automatically log in after successful registration
+      if (onLoginSuccess) {
+        onLoginSuccess({
+          name: registerForm.name,
+          email: registerForm.email,
+          role: "user", // Default role for new users
+        });
+      }
+      
+      onOpenChange(false);
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -177,13 +179,6 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-            
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              <p>Demo Accounts:</p>
-              <p className="mt-1 font-medium text-night-800">
-                admin@urbandashx.com / admin &nbsp;|&nbsp; user@example.com / user
-              </p>
-            </div>
           </TabsContent>
           
           <TabsContent value="register" className="mt-4">

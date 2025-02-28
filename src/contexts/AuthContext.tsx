@@ -1,5 +1,6 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
+import { loginService, registerService, getCurrentUser } from "../services/authService";
 
 // Define user type
 export interface User {
@@ -31,45 +32,36 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [token, setToken] = useState<string | null>(null);
 
-  // Check for stored user on mount
+  // Check for stored user and token on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
+    const storedToken = localStorage.getItem("token");
+    
+    if (storedUser && storedToken) {
       setUser(JSON.parse(storedUser));
+      setToken(storedToken);
     }
+    
     setIsLoading(false);
   }, []);
 
-  // Login function - this would connect to a MongoDB backend API in production
+  // Login function
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     
     try {
-      // Simulate API call - in production this would be a real API endpoint
-      // connecting to MongoDB
-      if (
-        (email === "admin@urbandashx.com" && password === "admin") ||
-        (email === "user@example.com" && password === "user")
-      ) {
-        const isAdmin = email === "admin@urbandashx.com";
-        
-        // Create mock user data - in production this would come from MongoDB
-        const userData: User = {
-          id: isAdmin ? "admin-123" : "user-456",
-          name: isAdmin ? "Admin User" : "Regular User",
-          email: email,
-          role: isAdmin ? "admin" : "user",
-        };
-        
-        // Save to local storage - this simulates session persistence
-        localStorage.setItem("user", JSON.stringify(userData));
-        
-        // Update state
-        setUser(userData);
-      } else {
-        throw new Error("Invalid credentials");
-      }
+      // Use real MongoDB backend through our service
+      const { user: userData, token: authToken } = await loginService(email, password);
+      
+      // Save to local storage
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("token", authToken);
+      
+      // Update state
+      setUser(userData);
+      setToken(authToken);
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -78,20 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Register function - this would connect to a MongoDB backend API in production
+  // Register function
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     
     try {
-      // Simulate API call - in production this would create a user in MongoDB
-      // Simulating a successful registration
-      console.log("Registering user:", { name, email });
+      // Use real MongoDB backend through our service
+      const { user: userData, token: authToken } = await registerService(name, email, password);
       
-      // In production, we would create a user in MongoDB here
-      // and then login automatically
+      // Save to local storage
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("token", authToken);
       
-      // For now, we'll just return success
-      return Promise.resolve();
+      // Update state
+      setUser(userData);
+      setToken(authToken);
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
@@ -103,7 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setUser(null);
+    setToken(null);
   };
 
   return (
