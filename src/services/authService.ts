@@ -28,6 +28,7 @@ export const loginService = async (email: string, password: string): Promise<{us
 
 export const registerService = async (name: string, email: string, password: string): Promise<{user: User, token: string}> => {
   try {
+    console.log('Registering user:', { name, email });
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {
@@ -42,6 +43,7 @@ export const registerService = async (name: string, email: string, password: str
     }
     
     const data = await response.json();
+    console.log('Registration successful:', data);
     return data;
   } catch (error) {
     console.error('Registration error:', error);
