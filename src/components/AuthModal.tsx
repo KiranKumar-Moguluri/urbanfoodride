@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,6 +18,7 @@ interface AuthModalProps {
 export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { login, register } = useAuth();
   
@@ -37,8 +39,10 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
     try {
+      console.log("Attempting login for:", loginForm.email);
       // Connect to MongoDB backend via AuthContext
       await login(loginForm.email, loginForm.password);
       
@@ -56,12 +60,9 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
       }
       
       onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setError(error.message || "Login failed. Please check your credentials and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -70,9 +71,11 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
     // Validate form
     if (registerForm.password !== registerForm.confirmPassword) {
+      setError("Passwords don't match");
       toast({
         title: "Passwords don't match",
         description: "Please make sure your passwords match.",
@@ -83,6 +86,7 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
     }
     
     try {
+      console.log("Attempting registration for:", registerForm.email);
       // Connect to MongoDB backend via AuthContext
       await register(registerForm.name, registerForm.email, registerForm.password);
       
@@ -101,12 +105,9 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
       }
       
       onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "Registration failed",
-        description: "An error occurred during registration. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      setError(error.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -114,10 +115,12 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
   
   const updateLoginForm = (field: keyof typeof loginForm, value: string) => {
     setLoginForm(prev => ({ ...prev, [field]: value }));
+    setError(null); // Clear error when form is updated
   };
   
   const updateRegisterForm = (field: keyof typeof registerForm, value: string) => {
     setRegisterForm(prev => ({ ...prev, [field]: value }));
+    setError(null); // Clear error when form is updated
   };
 
   return (
@@ -132,13 +135,23 @@ export function AuthModal({ open, onOpenChange, onLoginSuccess }: AuthModalProps
         <Tabs 
           defaultValue="login" 
           value={activeTab} 
-          onValueChange={(v) => setActiveTab(v as "login" | "register")}
+          onValueChange={(v) => {
+            setActiveTab(v as "login" | "register");
+            setError(null);
+          }}
           className="w-full mt-4"
         >
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
+          
+          {error && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mt-4 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
           
           <TabsContent value="login" className="mt-4">
             <form onSubmit={handleLoginSubmit} className="space-y-4">

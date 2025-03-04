@@ -1,11 +1,18 @@
 
 import { User } from "../contexts/AuthContext";
 
-const API_URL = "http://localhost:5000/api/auth";
+// Use the base URL of where the app is running, or fallback to localhost
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? "http://localhost:5000" 
+  : "https://urbandashx-backend.onrender.com"; // Replace with your actual deployed backend URL if you have one
+
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 export const loginService = async (email: string, password: string): Promise<{user: User, token: string}> => {
   try {
     console.log('Login attempt for:', email);
+    console.log('Using API URL:', API_URL);
+    
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
@@ -14,17 +21,21 @@ export const loginService = async (email: string, password: string): Promise<{us
       body: JSON.stringify({ email, password })
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      console.error('Login failed:', data.message);
-      throw new Error(data.message || 'Login failed');
+      const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+      console.error('Login failed:', errorData.message);
+      throw new Error(errorData.message || 'Login failed');
     }
     
+    const data = await response.json();
     console.log('Login successful for:', email);
     return data;
-  } catch (error) {
+  } catch (error: any) {
+    // More detailed error logging
     console.error('Login error:', error);
+    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      throw new Error('Cannot connect to the server. Please make sure the backend is running.');
+    }
     throw error;
   }
 };
@@ -32,6 +43,7 @@ export const loginService = async (email: string, password: string): Promise<{us
 export const registerService = async (name: string, email: string, password: string): Promise<{user: User, token: string}> => {
   try {
     console.log('Registering user:', { name, email });
+    console.log('Using API URL:', API_URL);
     
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
@@ -41,17 +53,20 @@ export const registerService = async (name: string, email: string, password: str
       body: JSON.stringify({ name, email, password })
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      console.error('Registration failed:', data.message);
-      throw new Error(data.message || 'Registration failed');
+      const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+      console.error('Registration failed:', errorData.message);
+      throw new Error(errorData.message || 'Registration failed');
     }
     
+    const data = await response.json();
     console.log('Registration successful:', data);
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
+    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      throw new Error('Cannot connect to the server. Please make sure the backend is running.');
+    }
     throw error;
   }
 };
@@ -59,6 +74,8 @@ export const registerService = async (name: string, email: string, password: str
 export const getCurrentUser = async (token: string): Promise<User> => {
   try {
     console.log('Getting current user with token');
+    console.log('Using API URL:', API_URL);
+    
     const response = await fetch(`${API_URL}/user`, {
       method: 'GET',
       headers: {
@@ -67,12 +84,13 @@ export const getCurrentUser = async (token: string): Promise<User> => {
       }
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      console.error('Failed to get user data:', data.message);
-      throw new Error(data.message || 'Failed to get user data');
+      const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+      console.error('Failed to get user data:', errorData.message);
+      throw new Error(errorData.message || 'Failed to get user data');
     }
+    
+    const data = await response.json();
     
     return {
       id: data._id,

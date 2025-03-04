@@ -1,6 +1,7 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { loginService, registerService, getCurrentUser } from "../services/authService";
+import { useToast } from "@/hooks/use-toast";
 
 // Define user type
 export interface User {
@@ -17,6 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  error: string | null;
 }
 
 // Create context with default values
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   register: async () => {},
   logout: () => {},
+  error: null,
 });
 
 // Create provider component
@@ -33,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [token, setToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Check for stored user and token on mount
   useEffect(() => {
@@ -58,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login function
   const login = async (email: string, password: string) => {
     setIsLoading(true);
+    setError(null);
     
     try {
       console.log("Attempting login for:", email);
@@ -76,8 +82,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       setToken(authToken);
       console.log("Login successful for:", userData.email);
-    } catch (error) {
+      
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${userData.name}!`,
+      });
+    } catch (error: any) {
       console.error("Login error:", error);
+      setError(error.message || "Login failed. Please try again.");
+      toast({
+        title: "Login failed",
+        description: error.message || "Login failed. Please try again.",
+        variant: "destructive",
+      });
       throw error;
     } finally {
       setIsLoading(false);
@@ -87,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Register function
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
+    setError(null);
     
     try {
       console.log("Attempting registration for:", email);
@@ -105,8 +123,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       setToken(authToken);
       console.log("Registration successful for:", userData.email);
-    } catch (error) {
+      
+      toast({
+        title: "Registration successful",
+        description: `Welcome, ${userData.name}!`,
+      });
+    } catch (error: any) {
       console.error("Registration error:", error);
+      setError(error.message || "Registration failed. Please try again.");
+      toast({
+        title: "Registration failed",
+        description: error.message || "Registration failed. Please try again.",
+        variant: "destructive",
+      });
       throw error;
     } finally {
       setIsLoading(false);
@@ -119,11 +148,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     setUser(null);
     setToken(null);
+    setError(null);
     console.log("User logged out");
+    
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, error }}>
       {children}
     </AuthContext.Provider>
   );

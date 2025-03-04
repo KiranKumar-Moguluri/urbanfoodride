@@ -11,10 +11,14 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins in development
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'x-auth-token']
+}));
 
 // Debug connection string (remove sensitive info)
-console.log('Connecting to MongoDB...');
+console.log('MongoDB connection attempt starting...');
 console.log('MongoDB URI format check:', process.env.MONGO_URI ? 'URI exists' : 'URI missing');
 
 // MongoDB Connection - using the connection string from .env
@@ -76,6 +80,11 @@ const User = mongoose.model('User', UserSchema);
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'urbandashx-secret-key';
 
+// Test route to verify server is running
+app.get('/', (req, res) => {
+  res.send('UrbanDashX API is running');
+});
+
 // Routes
 // Register User
 app.post('/api/auth/register', async (req, res) => {
@@ -130,7 +139,7 @@ app.post('/api/auth/register', async (req, res) => {
 // Login User
 app.post('/api/auth/login', async (req, res) => {
   try {
-    console.log('Login request received');
+    console.log('Login request received:', req.body);
     const { email, password } = req.body;
     
     // Find user by email
@@ -207,4 +216,7 @@ app.get('/api/auth/user', auth, async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`API accessible at http://localhost:${PORT}/api/auth`);
+});
