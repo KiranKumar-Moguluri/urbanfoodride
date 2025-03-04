@@ -40,8 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedToken = localStorage.getItem("token");
     
     if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
+      try {
+        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+        console.log("Auth restored from localStorage");
+      } catch (error) {
+        console.error("Error parsing stored user:", error);
+        // Clear invalid data
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
     }
     
     setIsLoading(false);
@@ -52,8 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
+      console.log("Attempting login for:", email);
       // Use real MongoDB backend through our service
       const { user: userData, token: authToken } = await loginService(email, password);
+      
+      if (!userData || !authToken) {
+        throw new Error("Invalid response from server");
+      }
       
       // Save to local storage
       localStorage.setItem("user", JSON.stringify(userData));
@@ -62,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update state
       setUser(userData);
       setToken(authToken);
+      console.log("Login successful for:", userData.email);
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -75,8 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
+      console.log("Attempting registration for:", email);
       // Use real MongoDB backend through our service
       const { user: userData, token: authToken } = await registerService(name, email, password);
+      
+      if (!userData || !authToken) {
+        throw new Error("Invalid response from server");
+      }
       
       // Save to local storage
       localStorage.setItem("user", JSON.stringify(userData));
@@ -85,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update state
       setUser(userData);
       setToken(authToken);
+      console.log("Registration successful for:", userData.email);
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
@@ -99,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     setUser(null);
     setToken(null);
+    console.log("User logged out");
   };
 
   return (
