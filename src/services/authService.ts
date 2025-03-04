@@ -18,23 +18,24 @@ export const loginService = async (email: string, password: string): Promise<{us
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
+      credentials: 'include' // Include cookies for cross-site requests
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Server error' }));
-      console.error('Login failed:', errorData.message);
-      throw new Error(errorData.message || 'Login failed');
+      console.error('Login failed:', data.message || 'Unknown error');
+      throw new Error(data.message || 'Login failed');
     }
     
-    const data = await response.json();
     console.log('Login successful for:', email);
     return data;
   } catch (error: any) {
     // More detailed error logging
     console.error('Login error:', error);
-    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-      throw new Error('Cannot connect to the server. Please make sure the backend is running.');
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('Cannot connect to the server. Please make sure the backend is running at ' + API_URL);
     }
     throw error;
   }
@@ -50,22 +51,23 @@ export const registerService = async (name: string, email: string, password: str
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({ name, email, password }),
+      credentials: 'include' // Include cookies for cross-site requests
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Server error' }));
-      console.error('Registration failed:', errorData.message);
-      throw new Error(errorData.message || 'Registration failed');
+      console.error('Registration failed:', data.message || 'Unknown error');
+      throw new Error(data.message || 'Registration failed');
     }
     
-    const data = await response.json();
     console.log('Registration successful:', data);
     return data;
   } catch (error: any) {
     console.error('Registration error:', error);
-    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-      throw new Error('Cannot connect to the server. Please make sure the backend is running.');
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('Cannot connect to the server. Please make sure the backend is running at ' + API_URL);
     }
     throw error;
   }
@@ -80,23 +82,23 @@ export const getCurrentUser = async (token: string): Promise<User> => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'x-auth-token': token
-      }
+        'Authorization': `Bearer ${token}`  // Changed from x-auth-token to Authorization header
+      },
+      credentials: 'include' // Include cookies for cross-site requests
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Server error' }));
-      console.error('Failed to get user data:', errorData.message);
-      throw new Error(errorData.message || 'Failed to get user data');
-    }
     
     const data = await response.json();
     
+    if (!response.ok) {
+      console.error('Failed to get user data:', data.message || 'Unknown error');
+      throw new Error(data.message || 'Failed to get user data');
+    }
+    
     return {
-      id: data._id,
+      id: data._id || data.id,
       name: data.name,
       email: data.email,
-      role: data.role
+      role: data.role || 'user'
     };
   } catch (error) {
     console.error('Get user error:', error);

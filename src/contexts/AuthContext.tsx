@@ -49,6 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(JSON.parse(storedUser));
         setToken(storedToken);
         console.log("Auth restored from localStorage");
+        
+        // Verify the token is still valid with the server
+        getCurrentUser(storedToken).catch(err => {
+          console.error("Stored token is invalid:", err);
+          // Clear invalid data
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+          setUser(null);
+          setToken(null);
+        });
       } catch (error) {
         console.error("Error parsing stored user:", error);
         // Clear invalid data
@@ -67,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       console.log("Attempting login for:", email);
-      // Use real MongoDB backend through our service
       const { user: userData, token: authToken } = await loginService(email, password);
       
       if (!userData || !authToken) {
@@ -108,7 +117,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       console.log("Attempting registration for:", email);
-      // Use real MongoDB backend through our service
       const { user: userData, token: authToken } = await registerService(name, email, password);
       
       if (!userData || !authToken) {
