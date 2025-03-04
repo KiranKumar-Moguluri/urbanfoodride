@@ -12,9 +12,10 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: '*', // Allow all origins in development
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://f42e54fb-635c-4ef4-a66f-db05262feb67.lovableproject.com'], // Add your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'x-auth-token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  credentials: true // Allow credentials (cookies)
 }));
 
 // Debug connection string (remove sensitive info)
@@ -183,7 +184,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Middleware to verify token
 const auth = (req, res, next) => {
   // Get token from header
-  const token = req.header('x-auth-token');
+  const token = req.header('Authorization')?.replace('Bearer ', '') || req.header('x-auth-token');
   
   // Check if no token
   if (!token) {
