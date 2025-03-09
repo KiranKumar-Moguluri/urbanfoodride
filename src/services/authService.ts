@@ -24,9 +24,11 @@ export const loginService = async (email: string, password: string): Promise<{us
     });
     
     if (!response.ok) {
-      const data = await response.json().catch(() => ({ message: `Server returned ${response.status}: ${response.statusText}` }));
-      console.error('Login failed:', data.message || 'Unknown error');
-      throw new Error(data.message || 'Login failed');
+      const errorData = await response.json().catch(() => ({ 
+        message: `Server returned ${response.status}: ${response.statusText}` 
+      }));
+      console.error('Login failed:', errorData.message || 'Unknown error');
+      throw new Error(errorData.message || 'Login failed');
     }
     
     const data = await response.json();
@@ -58,9 +60,11 @@ export const registerService = async (name: string, email: string, password: str
     });
     
     if (!response.ok) {
-      const data = await response.json().catch(() => ({ message: `Server returned ${response.status}: ${response.statusText}` }));
-      console.error('Registration failed:', data.message || 'Unknown error');
-      throw new Error(data.message || 'Registration failed');
+      const errorData = await response.json().catch(() => ({ 
+        message: `Server returned ${response.status}: ${response.statusText}` 
+      }));
+      console.error('Registration failed:', errorData.message || 'Unknown error');
+      throw new Error(errorData.message || 'Registration failed');
     }
     
     const data = await response.json();
@@ -91,9 +95,11 @@ export const getCurrentUser = async (token: string): Promise<User> => {
     });
     
     if (!response.ok) {
-      const data = await response.json().catch(() => ({ message: `Server returned ${response.status}: ${response.statusText}` }));
-      console.error('Failed to get user data:', data.message || 'Unknown error');
-      throw new Error(data.message || 'Failed to get user data');
+      const errorData = await response.json().catch(() => ({ 
+        message: `Server returned ${response.status}: ${response.statusText}` 
+      }));
+      console.error('Failed to get user data:', errorData.message || 'Unknown error');
+      throw new Error(errorData.message || 'Failed to get user data');
     }
     
     const data = await response.json();
