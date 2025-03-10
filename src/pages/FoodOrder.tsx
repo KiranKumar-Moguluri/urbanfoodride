@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Search, Filter, MapPin, ShoppingBag, Car, Users, Clock } from "lucide-react";
+import { ChevronLeft, Search, Filter, MapPin, ShoppingBag, Car, Users, Clock, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { FoodCard } from "@/components/FoodCard";
@@ -10,17 +9,57 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+
+interface FoodItem {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  image?: string;
+}
+
+interface Restaurant {
+  id: string;
+  name: string;
+  image: string;
+  cuisine: string;
+  rating: number;
+  deliveryTime: string;
+  distance: string;
+  priceRange: string;
+  featured?: boolean;
+  menuItems?: FoodItem[];
+}
+
+interface CartItem {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  restaurantImage: string;
+  itemName: string;
+  itemPrice: number;
+  quantity: number;
+}
 
 const FoodOrder = () => {
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>("350 5th Ave, New York, NY 10118");
+  const [deliveryLocation, setDeliveryLocation] = useState<string>("350 5th Ave, New York, NY 10118");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
-  const [cart, setCart] = useState<{items: any[], total: number}>({ items: [], total: 0 });
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [showMenuSheet, setShowMenuSheet] = useState(false);
+  const [cart, setCart] = useState<{ items: CartItem[], total: number }>({ items: [], total: 0 });
   const [offerRideEnabled, setOfferRideEnabled] = useState(false);
   const [showOfferRideSheet, setShowOfferRideSheet] = useState(false);
   const [rideCapacity, setRideCapacity] = useState(1);
   const [rideTime, setRideTime] = useState("18:00");
+  const [pickupLocation, setPickupLocation] = useState<string>("");
+  const [pickupDistance, setPickupDistance] = useState(0);
+  const [rideDiscount, setRideDiscount] = useState(0);
+  const [needRide, setNeedRide] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -29,61 +68,152 @@ const FoodOrder = () => {
     const params = new URLSearchParams(location.search);
     const restaurantId = params.get("restaurant");
     if (restaurantId) {
-      setSelectedRestaurant(restaurantId);
+      const restaurant = restaurants.find(r => r.id === restaurantId) || null;
+      setSelectedRestaurant(restaurant);
+      if (restaurant) {
+        setShowMenuSheet(true);
+      }
     }
   }, [location]);
 
   const handleLocationSelect = (location: string) => {
     setCurrentLocation(location);
+    setDeliveryLocation(location);
     toast({
       title: "Location updated",
       description: location,
     });
+    
+    if (needRide && pickupLocation) {
+      calculateRideDiscount(location, pickupLocation);
+    }
   };
 
-  const handleOrderFood = (restaurant: any) => {
-    const newCartItem = {
-      id: Date.now(),
-      restaurant: restaurant,
-      quantity: 1,
-      price: 15.99,
-    };
+  const handlePickupLocationSelect = (location: string) => {
+    setPickupLocation(location);
     
-    setCart(prev => ({
-      items: [...prev.items, newCartItem],
-      total: prev.total + 15.99,
-    }));
+    calculateRideDiscount(deliveryLocation, location);
     
     toast({
-      title: "Added to cart",
-      description: `Item from ${restaurant.name} added to your cart`,
+      title: "Pickup location updated",
+      description: location,
     });
   };
 
+  const calculateRideDiscount = (deliveryLocation: string, pickupLocation: string) => {
+    const distance = Math.random() * 5;
+    setPickupDistance(parseFloat(distance.toFixed(1)));
+    
+    if (distance < 1) {
+      setRideDiscount(100);
+    } else if (distance < 2) {
+      setRideDiscount(75);
+    } else if (distance < 3) {
+      setRideDiscount(50);
+    } else if (distance < 4) {
+      setRideDiscount(25);
+    } else {
+      setRideDiscount(0);
+    }
+  };
+
+  const openRestaurantMenu = (restaurant: Restaurant) => {
+    setSelectedRestaurant(restaurant);
+    setShowMenuSheet(true);
+  };
+
+  const handleAddToCart = (item: FoodItem) => {
+    if (!selectedRestaurant) return;
+    
+    const existingItemIndex = cart.items.findIndex(
+      cartItem => cartItem.id === item.id && cartItem.restaurantId === selectedRestaurant.id
+    );
+    
+    let newItems = [...cart.items];
+    let newTotal = cart.total;
+    
+    if (existingItemIndex >= 0) {
+      newItems[existingItemIndex].quantity += 1;
+      newTotal += item.price;
+    } else {
+      newItems.push({
+        id: item.id,
+        restaurantId: selectedRestaurant.id,
+        restaurantName: selectedRestaurant.name,
+        restaurantImage: selectedRestaurant.image,
+        itemName: item.name,
+        itemPrice: item.price,
+        quantity: 1
+      });
+      newTotal += item.price;
+    }
+    
+    setCart({
+      items: newItems,
+      total: newTotal
+    });
+    
+    toast({
+      title: "Added to cart",
+      description: `${item.name} from ${selectedRestaurant.name} added to your cart`,
+    });
+  };
+
+  const handleRemoveFromCart = (itemId: string, restaurantId: string) => {
+    const existingItemIndex = cart.items.findIndex(
+      cartItem => cartItem.id === itemId && cartItem.restaurantId === restaurantId
+    );
+    
+    if (existingItemIndex < 0) return;
+    
+    const item = cart.items[existingItemIndex];
+    let newItems = [...cart.items];
+    let newTotal = cart.total;
+    
+    if (item.quantity > 1) {
+      newItems[existingItemIndex].quantity -= 1;
+      newTotal -= item.itemPrice;
+    } else {
+      newItems = newItems.filter((_, index) => index !== existingItemIndex);
+      newTotal -= item.itemPrice;
+    }
+    
+    setCart({
+      items: newItems,
+      total: newTotal
+    });
+  };
+
+  const handleRideToggle = (checked: boolean) => {
+    setNeedRide(checked);
+    
+    if (checked) {
+      setShowOfferRideSheet(true);
+    } else {
+      setOfferRideEnabled(false);
+    }
+  };
+
   const handleOfferRide = () => {
-    // Close the sheet
     setShowOfferRideSheet(false);
     
-    // Enable ride offering
     setOfferRideEnabled(true);
     
     toast({
-      title: "Ride Offering Enabled",
-      description: `You'll be offering a ride for ${rideCapacity} passenger(s) at ${rideTime}`,
+      title: "Ride Request Added",
+      description: `Your ride request has been added to your order${rideDiscount > 0 ? ` with a ${rideDiscount}% discount` : ''}`,
     });
   };
 
   const handleCheckout = () => {
-    // If offering ride, add that information to the URL
-    if (offerRideEnabled) {
-      navigate(`/checkout?offerRide=true&capacity=${rideCapacity}&time=${rideTime}`);
+    if (needRide) {
+      navigate(`/checkout?needRide=true&pickupLocation=${encodeURIComponent(pickupLocation)}&discount=${rideDiscount}&pickupTime=${rideTime}`);
     } else {
       navigate('/checkout');
     }
   };
 
-  // Restaurant data
-  const restaurants = [
+  const restaurants: Restaurant[] = [
     {
       id: "1",
       name: "Urban Bistro",
@@ -94,6 +224,26 @@ const FoodOrder = () => {
       distance: "1.2 mi",
       priceRange: "$$$",
       featured: true,
+      menuItems: [
+        {
+          id: "1-1",
+          name: "Signature Burger",
+          price: 15.99,
+          description: "Prime beef patty with caramelized onions, cheddar cheese, and house sauce"
+        },
+        {
+          id: "1-2",
+          name: "Truffle Fries",
+          price: 8.99,
+          description: "Hand-cut potatoes fried to perfection, tossed with truffle oil and parmesan"
+        },
+        {
+          id: "1-3",
+          name: "Cobb Salad",
+          price: 12.99,
+          description: "Fresh greens with grilled chicken, bacon, avocado, eggs, and blue cheese"
+        }
+      ]
     },
     {
       id: "2",
@@ -105,6 +255,26 @@ const FoodOrder = () => {
       distance: "2.0 mi",
       priceRange: "$$$$",
       featured: true,
+      menuItems: [
+        {
+          id: "2-1",
+          name: "Rainbow Roll",
+          price: 18.99,
+          description: "Crab, cucumber, and avocado roll topped with assorted sashimi"
+        },
+        {
+          id: "2-2",
+          name: "Spicy Tuna Roll",
+          price: 14.99,
+          description: "Fresh tuna mixed with spicy mayo and cucumber"
+        },
+        {
+          id: "2-3",
+          name: "Miso Soup",
+          price: 4.99,
+          description: "Traditional Japanese soup with tofu, seaweed, and green onions"
+        }
+      ]
     },
     {
       id: "3",
@@ -116,6 +286,26 @@ const FoodOrder = () => {
       distance: "0.8 mi",
       priceRange: "$$",
       featured: true,
+      menuItems: [
+        {
+          id: "3-1",
+          name: "Taco Salad",
+          price: 10.99,
+          description: "Grilled chicken, lettuce, tomato, and cheese"
+        },
+        {
+          id: "3-2",
+          name: "Chalupa",
+          price: 8.99,
+          description: "Soft taco shell filled with ground beef, cheese, and salsa"
+        },
+        {
+          id: "3-3",
+          name: "Burrito",
+          price: 12.99,
+          description: "Soft flour tortilla filled with ground beef, cheese, beans, and salsa"
+        }
+      ]
     },
     {
       id: "4",
@@ -126,6 +316,26 @@ const FoodOrder = () => {
       deliveryTime: "20-35 min",
       distance: "1.5 mi",
       priceRange: "$$$",
+      menuItems: [
+        {
+          id: "4-1",
+          name: "Margherita Pizza",
+          price: 12.99,
+          description: "Tomato sauce, mozzarella cheese, and fresh basil"
+        },
+        {
+          id: "4-2",
+          name: "Penne Alfredo",
+          price: 15.99,
+          description: "Penne pasta tossed with Alfredo sauce, garlic, and parmesan"
+        },
+        {
+          id: "4-3",
+          name: "Lasagna",
+          price: 18.99,
+          description: "Layers of pasta, meat sauce, and mozzarella cheese"
+        }
+      ]
     },
     {
       id: "5",
@@ -136,6 +346,26 @@ const FoodOrder = () => {
       deliveryTime: "15-30 min",
       distance: "1.1 mi",
       priceRange: "$$",
+      menuItems: [
+        {
+          id: "5-1",
+          name: "Pad Thai",
+          price: 10.99,
+          description: "Noodles stir-fried with tofu, shrimp, and vegetables"
+        },
+        {
+          id: "5-2",
+          name: "Gyoza",
+          price: 7.99,
+          description: "Flaky dumplings filled with pork and vegetables"
+        },
+        {
+          id: "5-3",
+          name: "Ramen",
+          price: 12.99,
+          description: "Japanese noodle soup with pork broth and toppings"
+        }
+      ]
     },
     {
       id: "6",
@@ -146,8 +376,53 @@ const FoodOrder = () => {
       deliveryTime: "10-20 min",
       distance: "0.5 mi",
       priceRange: "$$",
-    },
+      menuItems: [
+        {
+          id: "6-1",
+          name: "Cheeseburger",
+          price: 10.99,
+          description: "Bun with beef patty, cheese, lettuce, tomato, and pickles"
+        },
+        {
+          id: "6-2",
+          name: "Fries",
+          price: 5.99,
+          description: "Hand-cut fries with ketchup and mayonnaise"
+        },
+        {
+          id: "6-3",
+          name: "Onion Rings",
+          price: 3.99,
+          description: "Crispy onion rings with ranch dressing"
+        }
+      ]
+    }
   ];
+
+  restaurants.forEach(restaurant => {
+    if (!restaurant.menuItems) {
+      restaurant.menuItems = [
+        {
+          id: `${restaurant.id}-1`,
+          name: `${restaurant.name} Special`,
+          price: 15.99,
+          description: `Signature dish from ${restaurant.name}`
+        },
+        {
+          id: `${restaurant.id}-2`,
+          name: `${restaurant.cuisine} Classic`,
+          price: 12.99,
+          description: `Traditional ${restaurant.cuisine} favorite`
+        },
+        {
+          id: `${restaurant.id}-3`,
+          name: "Side Dish",
+          price: 7.99,
+          description: "Perfect complement to your meal"
+        }
+      ];
+    }
+  });
 
   const filteredRestaurants = searchQuery 
     ? restaurants.filter(restaurant => 
@@ -213,84 +488,28 @@ const FoodOrder = () => {
             </Button>
           </div>
           
-          {/* Offer a Ride Banner */}
-          {!offerRideEnabled && (
-            <div className="bg-urban-50 rounded-lg p-4 mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-urban-100 rounded-full flex items-center justify-center">
-                  <Car className="h-5 w-5 text-urban-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-night-800">Want to offer a ride?</h3>
-                  <p className="text-sm text-night-600">Save money by offering a ride to others while picking up your food</p>
-                </div>
+          <div className="bg-urban-50 rounded-lg p-4 mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-urban-100 rounded-full flex items-center justify-center">
+                <Car className="h-5 w-5 text-urban-600" />
               </div>
-              
-              <Sheet open={showOfferRideSheet} onOpenChange={setShowOfferRideSheet}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="flex-shrink-0">Offer Ride</Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <div className="space-y-6 pt-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Car className="h-5 w-5 text-urban-600" />
-                      Offer a Ride
-                    </h2>
-                    
-                    <p className="text-night-600">
-                      You can offer a ride to others when you pick up your food order. Set your preferences below:
-                    </p>
-                    
-                    <div className="space-y-4 mt-6">
-                      <div className="space-y-2">
-                        <label htmlFor="capacity" className="text-sm font-medium text-night-700">Passenger Capacity</label>
-                        <div className="relative">
-                          <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-night-400" />
-                          <Input 
-                            id="capacity"
-                            type="number"
-                            min="1"
-                            max="4"
-                            className="pl-9"
-                            value={rideCapacity}
-                            onChange={(e) => setRideCapacity(parseInt(e.target.value))}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="time" className="text-sm font-medium text-night-700">Pickup Time</label>
-                        <div className="relative">
-                          <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-night-400" />
-                          <Input 
-                            id="time"
-                            type="time"
-                            className="pl-9"
-                            value={rideTime}
-                            onChange={(e) => setRideTime(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-3 mt-8">
-                      <Button className="flex-1" onClick={handleOfferRide}>
-                        Confirm
-                      </Button>
-                      <SheetClose asChild>
-                        <Button variant="outline" className="flex-1">
-                          Cancel
-                        </Button>
-                      </SheetClose>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
+              <div>
+                <h3 className="font-medium text-night-800">Need a ride with your food?</h3>
+                <p className="text-sm text-night-600">Save money by adding a ride that's on the same route as your food delivery</p>
+              </div>
             </div>
-          )}
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-night-600">Add ride</span>
+              <Checkbox 
+                checked={needRide} 
+                onCheckedChange={handleRideToggle}
+                className="data-[state=checked]:bg-urban-600"
+              />
+            </div>
+          </div>
           
-          {/* Ride Offering Banner (when enabled) */}
-          {offerRideEnabled && (
+          {needRide && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -298,10 +517,35 @@ const FoodOrder = () => {
                     <Car className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-night-800">Ride Offering Active</h3>
-                    <p className="text-sm text-night-600">
-                      You're offering a ride for {rideCapacity} passenger(s) at {rideTime}
-                    </p>
+                    <h3 className="font-medium text-night-800">Ride Request Active</h3>
+                    <div className="text-sm text-night-600 mt-1">
+                      {pickupLocation ? (
+                        <>
+                          <div className="flex items-center gap-1 mb-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>Pickup: {pickupLocation}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>Time: {rideTime}</span>
+                          </div>
+                          {rideDiscount > 0 && (
+                            <Badge className="mt-2 bg-green-600">
+                              {rideDiscount}% Discount
+                            </Badge>
+                          )}
+                        </>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-1"
+                          onClick={() => setShowOfferRideSheet(true)}
+                        >
+                          Set pickup location
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
@@ -309,10 +553,13 @@ const FoodOrder = () => {
                   variant="outline" 
                   className="border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                   onClick={() => {
+                    setNeedRide(false);
                     setOfferRideEnabled(false);
+                    setPickupLocation("");
+                    setRideDiscount(0);
                     toast({
-                      title: "Ride Offering Disabled",
-                      description: "You're no longer offering a ride with your order",
+                      title: "Ride Request Canceled",
+                      description: "You're no longer requesting a ride with your order",
                     });
                   }}
                 >
@@ -336,7 +583,7 @@ const FoodOrder = () => {
                   <FoodCard 
                     key={restaurant.id}
                     restaurant={restaurant}
-                    onClick={() => handleOrderFood(restaurant)}
+                    onClick={() => openRestaurantMenu(restaurant)}
                   />
                 ))}
               </div>
@@ -350,7 +597,7 @@ const FoodOrder = () => {
                     <FoodCard 
                       key={restaurant.id}
                       restaurant={restaurant}
-                      onClick={() => handleOrderFood(restaurant)}
+                      onClick={() => openRestaurantMenu(restaurant)}
                     />
                   ))}
               </div>
@@ -364,7 +611,7 @@ const FoodOrder = () => {
                     <FoodCard 
                       key={restaurant.id}
                       restaurant={restaurant}
-                      onClick={() => handleOrderFood(restaurant)}
+                      onClick={() => openRestaurantMenu(restaurant)}
                     />
                   ))}
               </div>
@@ -378,7 +625,7 @@ const FoodOrder = () => {
                     <FoodCard 
                       key={restaurant.id}
                       restaurant={restaurant}
-                      onClick={() => handleOrderFood(restaurant)}
+                      onClick={() => openRestaurantMenu(restaurant)}
                     />
                   ))}
               </div>
@@ -395,9 +642,9 @@ const FoodOrder = () => {
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5" />
                     <span>View Cart ({cart.items.length} items)</span>
-                    {offerRideEnabled && (
+                    {needRide && (
                       <span className="text-xs bg-green-200 text-green-800 py-0.5 px-2 rounded-full">
-                        + Ride
+                        + Ride {rideDiscount > 0 ? `(${rideDiscount}% off)` : ''}
                       </span>
                     )}
                   </div>
@@ -408,6 +655,227 @@ const FoodOrder = () => {
               </div>
             </div>
           )}
+          
+          <Sheet open={showMenuSheet} onOpenChange={setShowMenuSheet}>
+            <SheetContent className="w-full sm:max-w-lg p-0">
+              {selectedRestaurant && (
+                <div className="h-full flex flex-col">
+                  <div className="relative h-48 w-full bg-night-100">
+                    <img 
+                      src={selectedRestaurant.image} 
+                      alt={selectedRestaurant.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm rounded-full"
+                      onClick={() => setShowMenuSheet(false)}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  
+                  <div className="flex-1 overflow-auto p-6">
+                    <h2 className="text-2xl font-bold mb-1">{selectedRestaurant.name}</h2>
+                    <div className="flex items-center gap-2 text-night-600 text-sm mb-6">
+                      <span>{selectedRestaurant.cuisine}</span>
+                      <span>•</span>
+                      <span>{selectedRestaurant.rating} ★</span>
+                      <span>•</span>
+                      <span>{selectedRestaurant.deliveryTime}</span>
+                    </div>
+                    
+                    <h3 className="font-medium text-lg mb-4">Menu</h3>
+                    
+                    <div className="space-y-6">
+                      {selectedRestaurant.menuItems?.map((item) => (
+                        <div key={item.id} className="flex justify-between border-b pb-4">
+                          <div className="flex-1 pr-4">
+                            <h4 className="font-medium">{item.name}</h4>
+                            <p className="text-sm text-night-600 mt-1">{item.description}</p>
+                            <p className="text-sm font-medium mt-2">${item.price.toFixed(2)}</p>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 w-8 rounded-full"
+                              onClick={() => handleAddToCart(item)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {cart.items.filter(item => item.restaurantId === selectedRestaurant.id).length > 0 && (
+                    <div className="p-4 border-t bg-white">
+                      <h3 className="font-medium mb-3">Items in Cart</h3>
+                      <div className="space-y-3">
+                        {cart.items
+                          .filter(item => item.restaurantId === selectedRestaurant.id)
+                          .map((item, index) => (
+                            <div key={index} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-night-600">{item.quantity}x</span>
+                                <span>{item.itemName}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span>${(item.itemPrice * item.quantity).toFixed(2)}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-6 w-6 rounded-full p-0" 
+                                  onClick={() => handleRemoveFromCart(item.id, item.restaurantId)}
+                                >
+                                  <span className="sr-only">Remove</span>
+                                  <span className="text-red-500">-</span>
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+          
+          <Sheet open={showOfferRideSheet} onOpenChange={setShowOfferRideSheet}>
+            <SheetContent>
+              <div className="space-y-6 pt-6">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Car className="h-5 w-5 text-urban-600" />
+                  Request a Ride
+                </h2>
+                
+                <p className="text-night-600">
+                  Set your pickup location and time to request a ride with your food order. If your location is on the same route as the food delivery, you'll get a discount!
+                </p>
+                
+                <div className="space-y-4 mt-6">
+                  <div className="space-y-2">
+                    <label htmlFor="pickup-location" className="text-sm font-medium text-night-700">Pickup Location</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-night-400" />
+                      <Input 
+                        id="pickup-location"
+                        placeholder="Enter your pickup address"
+                        className="pl-9"
+                        value={pickupLocation}
+                        onChange={(e) => setPickupLocation(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-1"
+                      onClick={() => {
+                        const exampleLocations = [
+                          "123 Main St, New York, NY",
+                          "500 5th Ave, New York, NY 10110",
+                          "350 6th Ave, New York, NY 10118",
+                          "1 World Trade Center, New York, NY"
+                        ];
+                        const randomLocation = exampleLocations[Math.floor(Math.random() * exampleLocations.length)];
+                        handlePickupLocationSelect(randomLocation);
+                      }}
+                    >
+                      Use Example Location
+                    </Button>
+                  </div>
+                  
+                  {pickupLocation && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-sm font-medium text-night-700">Distance from delivery route</label>
+                        <span className="text-sm font-medium">{pickupDistance} miles</span>
+                      </div>
+                      <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-green-500 to-yellow-500" 
+                          style={{ 
+                            width: `${Math.min(100, (pickupDistance / 5) * 100)}%` 
+                          }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-xs text-night-500">
+                        <span>On route (free)</span>
+                        <span>Far from route (full price)</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="time" className="text-sm font-medium text-night-700">Pickup Time</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-night-400" />
+                      <Input 
+                        id="time"
+                        type="time"
+                        className="pl-9"
+                        value={rideTime}
+                        onChange={(e) => setRideTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="capacity" className="text-sm font-medium text-night-700">Passenger Capacity</label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-night-400" />
+                      <Input 
+                        id="capacity"
+                        type="number"
+                        min="1"
+                        max="4"
+                        className="pl-9"
+                        value={rideCapacity}
+                        onChange={(e) => setRideCapacity(parseInt(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {pickupLocation && (
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Ride Discount:</span>
+                      <span className="font-bold text-green-700">{rideDiscount}%</span>
+                    </div>
+                    <p className="text-sm text-night-600 mt-2">
+                      {rideDiscount === 100 
+                        ? "Your pickup location is directly on the delivery route. Your ride will be free!" 
+                        : rideDiscount > 0 
+                          ? `Your pickup location is near the delivery route. You'll get a ${rideDiscount}% discount.`
+                          : "Your pickup location is not on the delivery route. Standard pricing applies."}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex gap-3 mt-8">
+                  <Button 
+                    className="flex-1" 
+                    onClick={handleOfferRide}
+                    disabled={!pickupLocation}
+                  >
+                    Confirm
+                  </Button>
+                  <SheetClose asChild>
+                    <Button variant="outline" className="flex-1">
+                      Cancel
+                    </Button>
+                  </SheetClose>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
       

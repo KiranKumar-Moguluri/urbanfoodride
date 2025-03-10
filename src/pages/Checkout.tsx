@@ -1,23 +1,23 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, CreditCard, MapPin, ShoppingBag, Clock, Check } from "lucide-react";
+import { ChevronLeft, CreditCard, MapPin, ShoppingBag, Clock, Check, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { LocationSearch } from "@/components/LocationSearch";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface CartItem {
-  id: number;
-  restaurant: {
-    id: string;
-    name: string;
-    image: string;
-  };
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  restaurantImage: string;
+  itemName: string;
+  itemPrice: number;
   quantity: number;
-  price: number;
 }
 
 const Checkout = () => {
@@ -33,44 +33,60 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   
+  // Ride-related state
+  const [hasRide, setHasRide] = useState(false);
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
+  const [rideDiscount, setRideDiscount] = useState(0);
+  const [ridePrice, setRidePrice] = useState(10.99);
+  
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Load cart data (in a real app, this would come from a persistent cart state)
+  // Load URL parameters and cart data
   useEffect(() => {
+    // Check for ride parameters in URL
+    const params = new URLSearchParams(location.search);
+    const needRide = params.get("needRide") === "true";
+    
+    if (needRide) {
+      setHasRide(true);
+      setPickupLocation(params.get("pickupLocation") || "");
+      setPickupTime(params.get("pickupTime") || "");
+      setRideDiscount(parseInt(params.get("discount") || "0"));
+    }
+    
     // For demo purposes, let's create some cart items
     // In a real app, you would get this from a context, local storage, or an API
     const demoItems: CartItem[] = [
       {
-        id: 1,
-        restaurant: {
-          id: "1",
-          name: "Urban Bistro",
-          image: "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudCUyMGZvb2R8ZW58MHx8MHx8fDA%3D"
-        },
-        quantity: 1,
-        price: 15.99
+        id: "1-1",
+        restaurantId: "1",
+        restaurantName: "Urban Bistro",
+        restaurantImage: "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudCUyMGZvb2R8ZW58MHx8MHx8fDA%3D",
+        itemName: "Signature Burger",
+        itemPrice: 15.99,
+        quantity: 1
       },
       {
-        id: 2,
-        restaurant: {
-          id: "3",
-          name: "Taco Fiesta",
-          image: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dGFjb3N8ZW58MHx8MHx8fDA%3D"
-        },
-        quantity: 2,
-        price: 12.99
+        id: "3-2",
+        restaurantId: "3",
+        restaurantName: "Taco Fiesta",
+        restaurantImage: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dGFjb3N8ZW58MHx8MHx8fDA%3D",
+        itemName: "Taco Combo",
+        itemPrice: 12.99,
+        quantity: 2
       }
     ];
 
-    const total = demoItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = demoItems.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
     
     setCart({
       items: demoItems,
       total: total
     });
-  }, []);
+  }, [location]);
 
   const handleLocationSelect = (location: string) => {
     setCurrentLocation(location);
@@ -99,16 +115,16 @@ const Checkout = () => {
       
       toast({
         title: "Order placed successfully!",
-        description: "Your food will be on its way shortly.",
+        description: hasRide ? "Your food and ride will be on the way shortly." : "Your food will be on its way shortly.",
       });
       
       // In a real app, you would clear the cart here
     }, 2000);
   };
 
-  const handleRemoveItem = (itemId: number) => {
+  const handleRemoveItem = (itemId: string) => {
     const updatedItems = cart.items.filter(item => item.id !== itemId);
-    const updatedTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const updatedTotal = updatedItems.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
     
     setCart({
       items: updatedItems,
@@ -123,7 +139,14 @@ const Checkout = () => {
 
   const calculateTax = () => cart.total * 0.0875; // Example 8.75% tax
   const calculateDeliveryFee = () => deliveryOption === "express" ? 5.99 : 2.99;
-  const calculateTotal = () => cart.total + calculateTax() + calculateDeliveryFee();
+  
+  // Calculate ride fee with discount applied
+  const calculateRideFee = () => {
+    if (!hasRide) return 0;
+    return ridePrice * (1 - rideDiscount / 100);
+  };
+  
+  const calculateTotal = () => cart.total + calculateTax() + calculateDeliveryFee() + calculateRideFee();
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
@@ -188,6 +211,28 @@ const Checkout = () => {
                   <span className="text-night-600">Estimated Delivery:</span>
                   <span className="font-medium">30-45 minutes</span>
                 </div>
+                
+                {hasRide && (
+                  <div className="border-t mt-2 pt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-night-600 flex items-center gap-1">
+                        <Car className="h-4 w-4" />
+                        Ride Status:
+                      </span>
+                      <span className="font-medium">Confirmed</span>
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-night-600">Pickup Time:</span>
+                      <span className="font-medium">{pickupTime}</span>
+                    </div>
+                    {rideDiscount > 0 && (
+                      <div className="flex justify-between mt-1">
+                        <span className="text-night-600">Discount Applied:</span>
+                        <span className="font-medium text-green-600">{rideDiscount}%</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-3">
@@ -260,19 +305,19 @@ const Checkout = () => {
                     <div key={item.id} className="p-4 flex items-center gap-4">
                       <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                         <img 
-                          src={item.restaurant.image} 
-                          alt={item.restaurant.name}
+                          src={item.restaurantImage} 
+                          alt={item.restaurantName}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       
                       <div className="flex-grow">
-                        <h3 className="font-medium text-night-800">{item.restaurant.name}</h3>
-                        <p className="text-sm text-night-600">Qty: {item.quantity}</p>
+                        <h3 className="font-medium text-night-800">{item.itemName}</h3>
+                        <p className="text-sm text-night-600">{item.restaurantName} • Qty: {item.quantity}</p>
                       </div>
                       
                       <div className="flex flex-col items-end">
-                        <div className="font-medium">${(item.price * item.quantity).toFixed(2)}</div>
+                        <div className="font-medium">${(item.itemPrice * item.quantity).toFixed(2)}</div>
                         <button 
                           className="text-xs text-red-600 hover:underline mt-1"
                           onClick={() => handleRemoveItem(item.id)}
@@ -290,6 +335,69 @@ const Checkout = () => {
                   )}
                 </div>
               </div>
+              
+              {/* Ride Information (if applicable) */}
+              {hasRide && (
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-6 border-b">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-night-800 flex items-center gap-2">
+                        <Car className="h-5 w-5 text-urban-600" />
+                        Ride Information
+                      </h2>
+                      {rideDiscount > 0 && (
+                        <Badge className="bg-green-600">
+                          {rideDiscount}% Discount
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-medium text-night-800 mb-2">Pickup Location</h3>
+                        <div className="bg-gray-50 p-3 rounded-lg flex items-start gap-3">
+                          <MapPin className="h-5 w-5 text-night-500 flex-shrink-0 mt-0.5" />
+                          <div className="text-night-600">{pickupLocation}</div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-medium text-night-800 mb-2">Pickup Time</h3>
+                        <div className="bg-gray-50 p-3 rounded-lg flex items-start gap-3">
+                          <Clock className="h-5 w-5 text-night-500 flex-shrink-0 mt-0.5" />
+                          <div className="text-night-600">{pickupTime}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-night-800">
+                          {rideDiscount === 100 
+                            ? "Your pickup location is directly on the delivery route. Your ride will be free!" 
+                            : rideDiscount > 0 
+                              ? `Your pickup location is near the delivery route. You'll get a ${rideDiscount}% discount.`
+                              : "Your pickup location is not on the delivery route. Standard pricing applies."}
+                        </p>
+                      </div>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => {
+                          setHasRide(false);
+                          toast({
+                            title: "Ride removed",
+                            description: "Ride has been removed from your order"
+                          });
+                        }}
+                      >
+                        Remove Ride
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Delivery Options */}
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -470,6 +578,26 @@ const Checkout = () => {
                     <span className="text-night-600">Delivery Fee</span>
                     <span className="font-medium">${calculateDeliveryFee().toFixed(2)}</span>
                   </div>
+                  
+                  {hasRide && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-night-600 flex items-center gap-1">
+                        <Car className="h-4 w-4" /> Ride Fee
+                        {rideDiscount > 0 && (
+                          <Badge variant="outline" className="text-xs ml-1">
+                            {rideDiscount}% off
+                          </Badge>
+                        )}
+                      </span>
+                      <span className="font-medium">
+                        {rideDiscount === 100 ? (
+                          <span className="text-green-600">FREE</span>
+                        ) : (
+                          `$${calculateRideFee().toFixed(2)}`
+                        )}
+                      </span>
+                    </div>
+                  )}
                   
                   <div className="h-px bg-gray-200 my-2"></div>
                   
