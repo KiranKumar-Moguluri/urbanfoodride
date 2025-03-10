@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -195,6 +194,24 @@ const Index = () => {
           </div>
         </div>
       </section>
+      
+      {/* Footer with Founder Information */}
+      <footer className="py-6 px-4 bg-white border-t text-center">
+        <p className="text-night-700 text-sm font-medium">
+          Kiran Kumar Moguluri
+        </p>
+        <p className="text-night-600 text-xs">
+          Founder of UrbanDashX
+        </p>
+        <p className="text-night-500 text-xs mt-1">
+          <a href="mailto:mogulurikirankumar@gmail.com" className="hover:text-urban-600">
+            mogulurikirankumar@gmail.com
+          </a>
+        </p>
+        <p className="text-night-500 text-xs mt-1">
+          © 2025 UrbanDashX. All rights reserved.
+        </p>
+      </footer>
       
       <AuthModal 
         open={authModalOpen} 
