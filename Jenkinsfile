@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NODE_ENV = 'development'   // 👈 change this
+        NODE_ENV = 'development'
     }
 
     stages {
@@ -18,25 +18,24 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Deploy to AWS EC2') {
             steps {
-                echo 'No tests defined yet. Skipping test step.'
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deployment step will be added later.'
+                sshagent(credentials: ['aws-ec2-ssh']) {
+                    sh '''
+                        echo "Deploying to EC2..."
+                        scp -o StrictHostKeyChecking=no -r dist/* ubuntu@184.73.0.79:/var/www/html/
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build completed successfully.'
+            echo '✅ Build and deploy completed successfully.'
         }
         failure {
-            echo '❌ Build failed.'
+            echo '❌ Something went wrong during build or deployment.'
         }
     }
 }
