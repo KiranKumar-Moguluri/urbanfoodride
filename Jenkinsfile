@@ -14,14 +14,13 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'npm run build'
+                sh 'npx vite build'
             }
         }
 
         stage('Test') {
             steps {
                 echo 'No tests defined yet. Skipping test step.'
-                // sh 'npm test'
             }
         }
 
@@ -34,10 +33,10 @@ pipeline {
 
     post {
         success {
-            echo 'Build completed successfully.'
+            echo '✅ Build completed successfully.'
         }
         failure {
-            echo 'Build failed.'
+            echo '❌ Build failed.'
         }
     }
 }
