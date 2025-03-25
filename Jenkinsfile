@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NODE_ENV = 'production'
+        NODE_ENV = 'development'   // 👈 change this
     }
 
     stages {
