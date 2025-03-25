@@ -21,9 +21,9 @@ pipeline {
         stage('Test') {
             steps {
                 echo '🧪 No tests defined yet. Skipping test step.'
-                // Uncomment below if you add tests
                 // sh 'npm test'
             }
         }
 
-        stage('
+        stage('Deploy') {
+            steps {
