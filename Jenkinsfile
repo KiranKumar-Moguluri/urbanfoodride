@@ -20,10 +20,24 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo '🧪 No tests defined yet. Skipping test step.'
+                echo 'No tests defined yet. Skipping test step.'
                 // sh 'npm test'
             }
         }
 
         stage('Deploy') {
             steps {
+                echo 'Deployment step will be added later.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Build completed successfully.'
+        }
+        failure {
+            echo 'Build failed.'
+        }
+    }
+}
