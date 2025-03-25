@@ -4,7 +4,7 @@ pipeline {
     environment {
         NODE_ENV = 'development'
         EC2_USER = 'ubuntu'
-        EC2_HOST = '184.73.0.79' // double-check this matches your current public IP!
+        EC2_HOST = '18.212.16.187' // double-check this matches your current public IP!
         EC2_PATH = '/var/www/html'
     }
 
