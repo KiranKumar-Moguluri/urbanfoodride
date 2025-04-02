@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -6,6 +7,7 @@ pipeline {
         EC2_USER = 'ubuntu'
         EC2_HOST = '18.212.16.187' // double-check this matches your current public IP!
         EC2_PATH = '/var/www/html'
+        KAFKA_BROKERS = 'kafka-broker:9092' // Update this to your Kafka broker address
     }
 
     stages {
@@ -32,6 +34,9 @@ pipeline {
 
                         # Copy files to EC2
                         scp -o StrictHostKeyChecking=no -r dist/* $EC2_USER@$EC2_HOST:$EC2_PATH
+                        
+                        # Update environment variables on EC2
+                        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'KAFKA_BROKERS=${KAFKA_BROKERS}' >> $EC2_PATH/.env"
                     '''
                 }
             }

@@ -1,10 +1,11 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const { initializeProducer } = require('./services/kafkaService');
+const { initOrderConsumers } = require('./services/orderConsumerService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,21 @@ mongoose.connect(process.env.MONGO_URI)
       console.error('Could not connect to any MongoDB servers');
     }
   });
+
+// Initialize Kafka
+(async () => {
+  try {
+    await initializeProducer();
+    console.log('Kafka producer initialized');
+    
+    // Initialize consumers after producer is ready
+    await initOrderConsumers();
+    console.log('Kafka consumers initialized');
+  } catch (error) {
+    console.error('Failed to initialize Kafka:', error);
+    // Continue app execution even if Kafka fails
+  }
+})();
 
 // User Schema
 const UserSchema = new mongoose.Schema({
@@ -86,7 +102,7 @@ app.get('/', (req, res) => {
   res.send('UrbanDashX API is running');
 });
 
-// Routes
+// Auth routes (register, login, get user)
 // Register User
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -212,6 +228,90 @@ app.get('/api/auth/user', auth, async (req, res) => {
     res.json(user);
   } catch (error) {
     console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Food order and ride request routes
+// Create a new route for food orders with Kafka integration
+const { sendMessage, TOPICS } = require('./services/kafkaService');
+
+// Food order route - publishes to Kafka
+app.post('/api/food-orders', auth, async (req, res) => {
+  try {
+    const { items, restaurantId, deliveryAddress } = req.body;
+    
+    // Create order object
+    const order = {
+      orderId: `ORDER-${Date.now()}`,
+      userId: req.user.userId,
+      items,
+      restaurantId,
+      deliveryAddress,
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
+    };
+    
+    // Publish to Kafka
+    const published = await sendMessage(TOPICS.FOOD_ORDER_CREATED, order);
+    
+    if (published) {
+      res.status(201).json({
+        success: true,
+        message: 'Food order created and published to event stream',
+        order
+      });
+    } else {
+      // Even if Kafka fails, we still return success to client
+      // In a real application, you might want to save to database as fallback
+      res.status(201).json({
+        success: true,
+        message: 'Food order created but failed to publish to event stream',
+        order
+      });
+    }
+  } catch (error) {
+    console.error('Error creating food order:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Ride request route - publishes to Kafka
+app.post('/api/ride-requests', auth, async (req, res) => {
+  try {
+    const { pickupLocation, dropLocation, pickupTime, rideCapacity, associatedOrderId } = req.body;
+    
+    // Create ride request object
+    const rideRequest = {
+      requestId: `RIDE-${Date.now()}`,
+      userId: req.user.userId,
+      pickupLocation,
+      dropLocation,
+      pickupTime,
+      rideCapacity,
+      associatedOrderId, // Link to food order if applicable
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
+    };
+    
+    // Publish to Kafka
+    const published = await sendMessage(TOPICS.RIDE_REQUEST_CREATED, rideRequest);
+    
+    if (published) {
+      res.status(201).json({
+        success: true,
+        message: 'Ride request created and published to event stream',
+        rideRequest
+      });
+    } else {
+      res.status(201).json({
+        success: true,
+        message: 'Ride request created but failed to publish to event stream',
+        rideRequest
+      });
+    }
+  } catch (error) {
+    console.error('Error creating ride request:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
